@@ -30,12 +30,13 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       margin-bottom: 20px;
     }
-    /* Контейнер для умного редактора Ace */
+    /* Контейнер для умного редактора Ace с комфортным межстрочным интервалом */
     #editor {
       width: 100%;
-      height: 240px;
+      height: 270px;
       border-radius: 8px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      line-height: 1.6;
     }
     button {
       display: block;
@@ -66,19 +67,19 @@
 </head>
 <body>
 
-  <!-- УСЛОВИЕ ЗАДАЧИ -->
+  <!-- УСЛОВИЕ ЗАДАЧИ (Меняй текст под свои лабораторные) -->
   <div class="task-box">
     <h2>Лабораторная работа №1: Сумма четных чисел</h2>
     <p>Напишите функцию <code>sum_even(numbers)</code>, которая принимает список целых чисел и возвращает сумму только четных элементов.</p>
-    <p><strong>Пример:</strong> <code>sum_even([1, 2, 3, 4])</code> должна вернуть <code>6</code>.</p>
+    <p><strong>Пример:</strong> <code>sum_even(list((1, 2, 3, 4)))</code> должна вернуть <code>6</code>.</p>
   </div>
 
-  <!-- ОКНО УМНОГО РЕДАКТОРА (Теперь это div, а не textarea) -->
+  <!-- ОКНО УМНОГО РЕДАКТОРА -->
   <div id="editor">def sum_even(numbers):
     # Напишите ваш код здесь
     return 0
 
-print(sum_even([1, 2, 3, 4]))</div>
+print(sum_even(list((1, 2, 3, 4))))</div>
 
   <button id="run-btn">Проверить решение</button>
   <div id="output" class="output-box">Готов к работе! Напишите решение и нажмите кнопку.</div>
@@ -87,20 +88,24 @@ print(sum_even([1, 2, 3, 4]))</div>
     // ==========================================
     // 1. НАСТРОЙКА УМНОГО РЕДАКТОРА ACE
     // ==========================================
-    ace.require("ace/ext/language_tools"); // Включаем модуль подсказок
+    ace.require("ace/ext/language_tools");
     const editor = ace.edit("editor");
     
-    editor.setTheme("ace/theme/dracula");        // Темная тема (как в PyCharm Darcula)
+    editor.setTheme("ace/theme/dracula");        // Темная тема (как в PyCharm)
     editor.session.setMode("ace/mode/python");   // Режим Python
     
     editor.setOptions({
       fontSize: "15px",
       enableBasicAutocompletion: true, // Подсказки по Ctrl + Space
-      enableLiveAutocompletion: true,  // Всплывающие подсказки прямо при вводе букв!
+      enableLiveAutocompletion: true,  // Всплывающие подсказки при вводе
       enableSnippets: true,            // Готовые сниппеты (def, for, if и т.д.)
       showPrintMargin: false,          // Убираем вертикальную линию посередине
-      useWorker: false                 // Чтобы не искал лишние фоновые файлы
+      useWorker: false                 // Отключаем поиск лишних фоновых воркеров
     });
+
+    // Добавляем воздух по краям и сверху/снизу внутри редактора
+    editor.renderer.setPadding(12);
+    editor.renderer.setScrollMargin(12, 12);
 
     // ==========================================
     // 2. ЗАПУСК И ПРОВЕРКА PYTHON (SKULPT)
@@ -116,7 +121,6 @@ print(sum_even([1, 2, 3, 4]))</div>
     }
 
     runBtn.addEventListener("click", () => {
-      // Обрати внимание: из Ace код берется через editor.getValue()
       const userCode = editor.getValue();
       
       outputDiv.className = "output-box";
@@ -128,14 +132,14 @@ print(sum_even([1, 2, 3, 4]))</div>
         read: builtinRead
       });
 
-      // АВТОТЕСТЫ
+      // АВТОТЕСТЫ (Меняй эту часть под свои задачи)
       const fullCode = `
 ${userCode}
 
-assert sum_even([1, 2, 3, 4]) == 6, "Ошибка на тесте"
-assert sum_even([1, 3, 5]) == 0, "Ошибка на тесте без четных чисел"
-assert sum_even([]) == 0, "Ошибка на пустом списке []"
-assert sum_even([-2, 4, -5]) == 2, "Ошибка на отрицательных числах"
+assert sum_even(list((1, 2, 3, 4))) == 6, "Ошибка на тесте (1, 2, 3, 4)"
+assert sum_even(list((1, 3, 5))) == 0, "Ошибка на тесте без четных чисел"
+assert sum_even(list()) == 0, "Ошибка на пустом списке"
+assert sum_even(list((-2, 4, -5))) == 2, "Ошибка на отрицательных числах"
 `;
 
       Sk.misceval.asyncToPromise(() => {
