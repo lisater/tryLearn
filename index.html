@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <title>Лабораторная работа по Python</title>
   
-  <!-- Заменили cloudflare на unpkg -->
+  <!-- Редактор кода CodeMirror -->
   <link rel="stylesheet" href="https://unpkg.com">
   <link rel="stylesheet" href="https://unpkg.com">
-  
   <script src="https://unpkg.com"></script>
   <script src="https://unpkg.com"></script>
   
-  <!-- Pyodide -->
-  <script src="https://jsdelivr.net"></script>
+  <!-- Легкий движок Skulpt вместо тяжелого Pyodide -->
+  <script src="https://unpkg.com"></script>
+  <script src="https://unpkg.com"></script>
 
   <style>
     body {
@@ -30,14 +30,11 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       margin-bottom: 20px;
     }
-    /* Задаем нормальный размер на случай, если редактор долго грузится */
     textarea#code-editor {
       width: 100%;
       height: 180px;
       font-family: monospace;
       font-size: 15px;
-      padding: 10px;
-      box-sizing: border-box;
     }
     .CodeMirror {
       height: 200px;
@@ -45,7 +42,7 @@
       font-size: 15px;
     }
     button {
-      display: block; /* Чтобы кнопка была под редактором, а не сбоку */
+      display: block;
       margin-top: 15px;
       padding: 12px 24px;
       font-size: 16px;
@@ -54,10 +51,6 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
-    }
-    button:disabled {
-      background-color: #94d3a2;
-      cursor: not-allowed;
     }
     .output-box {
       margin-top: 20px;
@@ -74,27 +67,29 @@
 </head>
 <body>
 
+  <!-- УСЛОВИЕ ЗАДАЧИ -->
   <div class="task-box">
     <h2>Лабораторная работа №1: Сумма четных чисел</h2>
     <p>Напишите функцию <code>sum_even(numbers)</code>, которая принимает список целых чисел и возвращает сумму только четных элементов.</p>
-    <p><strong>Пример:</strong> <code>sum_even()</code> должна вернуть <code>6</code>.</p>
+    <p><strong>Пример:</strong> <code>sum_even([1, 2, 3, 4])</code> должна вернуть <code>6</code>.</p>
   </div>
 
+  <!-- РЕДАКТОР КОДА -->
   <textarea id="code-editor">def sum_even(numbers):
     # Напишите ваш код здесь
     return 0
 
-print(sum_even())</textarea>
+print(sum_even([1, 2, 3, 4]))</textarea>
 
-  <button id="run-btn" disabled>Загрузка Python...</button>
-  <div id="output" class="output-box">Ожидание инициализации среды...</div>
+  <!-- КНОПКА ЗАПУСКА (сразу активна!) -->
+  <button id="run-btn">Проверить решение</button>
+  <div id="output" class="output-box">Готов к работе! Напишите решение и нажмите кнопку.</div>
 
   <script>
     const runBtn = document.getElementById("run-btn");
     const outputDiv = document.getElementById("output");
     let editor = null;
 
-    // Безопасно подключаем CodeMirror (если заблокирован — останется обычное большое поле)
     if (typeof CodeMirror !== "undefined") {
       editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
         mode: "python",
@@ -102,59 +97,52 @@ print(sum_even())</textarea>
         lineNumbers: true,
         indentUnit: 4
       });
-    } else {
-      console.warn("CodeMirror не загрузился, используем обычное текстовое поле.");
     }
 
-    let pyodide = null;
-
-    async function initPython() {
-      // Проверяем, скачался ли скрипт Pyodide
-      if (typeof loadPyodide === "undefined") {
-        outputDiv.classList.add("status-error");
-        outputDiv.textContent = "❌ Не удалось загрузить Pyodide. Проверьте интернет или откройте страницу через GitHub Pages (а не как локальный файл).";
-        return;
+    // Функция для загрузки стандартных модулей Skulpt
+    function builtinRead(x) {
+      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined) {
+        throw "Файл не найден: '" + x + "'";
       }
-
-      try {
-        pyodide = await loadPyodide();
-        runBtn.disabled = false;
-        runBtn.textContent = "Проверить решение";
-        outputDiv.textContent = "Python готов! Напишите решение и нажмите кнопку.";
-      } catch (err) {
-        outputDiv.classList.add("status-error");
-        outputDiv.textContent = "Ошибка запуска Python: " + err;
-      }
+      return Sk.builtinFiles["files"][x];
     }
-    initPython();
 
-    runBtn.addEventListener("click", async () => {
-      // Берем код либо из красивого редактора, либо из обычного поля
+    runBtn.addEventListener("click", () => {
       const userCode = editor ? editor.getValue() : document.getElementById("code-editor").value;
       
       outputDiv.className = "output-box";
       outputDiv.textContent = "Выполняется...";
+      let stdoutBuffer = "";
 
-      const testCode = `
+      // Настраиваем перехват print()
+      Sk.configure({
+        output: (text) => { stdoutBuffer += text; },
+        read: builtinRead
+      });
+
+      // АВТОТЕСТЫ (меняй под свои задачи)
+      const fullCode = `
 ${userCode}
 
-assert sum_even() == 6, "Ошибка на тесте"
-assert sum_even() == 0, "Ошибка на тесте без четных чисел"
+assert sum_even([1, 2, 3, 4]) == 6, "Ошибка на тесте"
+assert sum_even([1, 3, 5]) == 0, "Ошибка на тесте без четных чисел"
 assert sum_even([]) == 0, "Ошибка на пустом списке []"
 assert sum_even([-2, 4, -5]) == 2, "Ошибка на отрицательных числах [-2, 4, -5]"
 `;
 
-      try {
-        let stdoutBuffer = "";
-        pyodide.setStdout({ batched: (str) => { stdoutBuffer += str + "\n"; } });
-        await pyodide.runPythonAsync(testCode);
-
-        outputDiv.classList.add("status-success");
-        outputDiv.textContent = `Вывод программы:\n${stdoutBuffer || "(ничего не выведено)"}\n\n✅ Да, всё верно! Задание выполнено.`;
-      } catch (err) {
-        outputDiv.classList.add("status-error");
-        outputDiv.textContent = `❌ Есть ошибка. Попробуйте переписать код:\n\n${err}`;
-      }
+      // Запускаем код асинхронно
+      Sk.misceval.asyncToPromise(() => {
+        return Sk.importMainWithBody("<stdin>", false, fullCode, true);
+      }).then(
+        () => {
+          outputDiv.classList.add("status-success");
+          outputDiv.textContent = `Вывод программы:\n${stdoutBuffer || "(ничего не выведено)"}\n\n✅ Да, всё верно! Задание выполнено.`;
+        },
+        (err) => {
+          outputDiv.classList.add("status-error");
+          outputDiv.textContent = `❌ Есть ошибка. Попробуйте переписать код:\n\n${err.toString()}`;
+        }
+      );
     });
   </script>
 </body>
